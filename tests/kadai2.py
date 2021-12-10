@@ -30,7 +30,7 @@ def main():
     W2 = rng.normal(0, np.sqrt(1/M), (C, M+1))
 
     # forward propagation
-    Y2 = neural.forward_propagation(XB, W1, W2)
+    Y2 = neural.predict(XB, W1, W2)
 
     loss = neural.cross_entropy(YB, Y2)
     print("cross entropy loss :", loss)

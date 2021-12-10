@@ -11,7 +11,7 @@ def main():
     # the number of classes
     C = 10
 
-    X = mnist.download_and_parse_mnist_file("train-images-idx3-ubyte.gz")
+    X = mnist.download_and_parse_mnist_file("t10k-images-idx3-ubyte.gz")
     s = input("Enter 0~9999: ")
     i = int(s)
 
@@ -24,7 +24,7 @@ def main():
     W2 = rng.normal(0, np.sqrt(1/M), (C, M+1))
 
     # forward propagation
-    Y = neural.forward_propagation(x, W1, W2)
+    Y = neural.predict(x, W1, W2)
 
     answer = np.argmax(Y)
     print(answer)

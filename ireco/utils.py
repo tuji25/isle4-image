@@ -2,9 +2,11 @@ import numpy as np
 from numpy.random import default_rng
 import time
 
-# make mini batch
+
 def minibatch(X, Y, B, seed=None):
     """
+    Make mini batch
+    
     Parameters
     ----------
     X : ndarray (N * D) 
@@ -34,9 +36,10 @@ def minibatch(X, Y, B, seed=None):
     YB = rng2.choice(Y, size=B, replace=False, shuffle=False)
     return XB, YB
 
-# create one-hot vector
 def to_categorical(y, num_classes):
     """
+    Create one-hot vector
+
     Parameters
     ----------
     y : Array with class values
@@ -51,3 +54,20 @@ def to_categorical(y, num_classes):
     categorical = np.zeros((n, num_classes))
     categorical[np.arange(n), y] = 1
     return categorical
+
+# calculate accuracy rate
+def accuracy(y_true, y_pred):
+    """
+    Calculate accuracy rate
+
+    Parameter
+    ---------
+    y_true : Numpy array(s) of correct label(s)
+    y_pred : Numpy array(s) of predicted label(s)
+
+    Return
+    ------
+    accuracy rate
+    """
+    data_size = y_true.size
+    return np.count_nonzero(y_true == y_pred) / data_size

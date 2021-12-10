@@ -11,7 +11,12 @@ def main():
     # conver labels to one-hot vector
     Y = utils.to_categorical(raw_Y, 10)
 
-    neural.learning(X, Y, 10, 1000, 10, 0.01)
+    M = 512
+    batch_size = 100
+    epochs = 15
+    lr = 0.01
+
+    neural.fit(X, Y, num_hidden_units=M, batch_size=batch_size, epochs=epochs, learning_rate=lr, filename="weight_data/weight.npz")
 
 if __name__ == '__main__':
     main()
