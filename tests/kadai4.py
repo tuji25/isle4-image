@@ -1,4 +1,3 @@
-from os import name
 import mnist
 import numpy as np
 from ireco import neural
