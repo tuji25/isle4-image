@@ -113,6 +113,7 @@ def fit(X, Y, num_hidden_units, batch_size, epochs=1, learning_rate=0.01, filena
     W2 = rng.normal(0, np.sqrt(1/num_hidden_units), (C, num_hidden_units+1))
 
     each_epoch  = N // batch_size
+    sum_loss = 0
     for i in range(each_epoch * epochs):
         # make mini-batch
         XB, YB = utils.minibatch(X, Y, batch_size)
@@ -120,6 +121,9 @@ def fit(X, Y, num_hidden_units, batch_size, epochs=1, learning_rate=0.01, filena
         # forward propagation
         Z1 = np.array([sigmoid(lsum(x, W1)) for x in XB])
         Y2 = np.array([softmax(lsum(x, W2)) for x in Z1])
+
+        # cross entropy loss
+        sum_loss += cross_entropy(YB, Y2)
 
         # error backpropagation
         dEn_da2 = differential_by_output_unit_activation(YB, Y2, batch_size)
@@ -134,8 +138,9 @@ def fit(X, Y, num_hidden_units, batch_size, epochs=1, learning_rate=0.01, filena
         W1 = W1 - learning_rate * dE_dW1
         W2 = W2 - learning_rate * dE_dW2
         
-        if i % each_epoch == 0:
-            print(cross_entropy(YB, Y2))
+        if i != 0 and i % each_epoch == each_epoch - 1:
+            print("epoch", i // each_epoch, "cross entropy:",sum_loss/each_epoch)
+            sum_loss = 0
     
     if filename is not None:
         np.savez(filename, W1, W2)
