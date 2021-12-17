@@ -11,12 +11,13 @@ def main():
     # the number of classes
     C = 10
 
-    X = mnist.download_and_parse_mnist_file("t10k-images-idx3-ubyte.gz")
+    raw_X = mnist.download_and_parse_mnist_file("t10k-images-idx3-ubyte.gz")
+    raw_Y = mnist.download_and_parse_mnist_file("train-labels-idx1-ubyte.gz")
     s = input("Enter 0~9999: ")
     i = int(s)
 
     # convert mnist data to D-d vector
-    x = np.reshape(X[i], D)
+    x = np.reshape(raw_X[i], D)
 
     # generate random weight
     rng = default_rng(seed=1)
@@ -27,7 +28,8 @@ def main():
     Y = neural.predict(x, W1, W2)
 
     answer = np.argmax(Y)
-    print(answer)
+    print("answer:", raw_Y[i])
+    print("prediction:", answer)
 
 if __name__ == '__main__':
     main()
