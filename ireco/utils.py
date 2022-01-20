@@ -26,7 +26,7 @@ def minibatch(X, Y, B, seed=None):
     D = X.ndim
     C = Y.ndim
     if seed is None:
-        ut = int(time.time())
+        ut = int(time.time()*256)
         rng1 = default_rng(seed=ut)
         rng2 = default_rng(seed=ut)
     else:
