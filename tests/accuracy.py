@@ -1,3 +1,4 @@
+from fileinput import filename
 import numpy as np
 import mnist
 from ireco import neural, utils
@@ -9,7 +10,9 @@ def main():
     # convert mnist data to D-d vector
     X = np.reshape(raw_X, (raw_X.shape[0], 784))
 
-    prediction = neural.fpredict(X, "weight_data/weight.npz")
+    filename = input("filename:")
+    activation = input("activation:")
+    prediction = neural.fpredict(X, filename, activation=activation)
 
     y_pred = np.argmax(prediction, axis=1)
 
