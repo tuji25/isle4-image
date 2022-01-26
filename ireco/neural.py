@@ -1,3 +1,4 @@
+from cmath import nan
 import numpy as np
 from numpy.random import default_rng
 from ireco import utils
@@ -26,10 +27,15 @@ def sigmoid(x):
     ones = np.ones(shape=size)
     return ones / (ones + np.exp(-x))
 
+# ReLU function
+def relu(x):
+    return np.maximum(x, 0)
+
 # softmax function
 def softmax(x):
     max = np.amax(x)
-    t = np.exp(x - max)
+    maxes = np.full_like(x, max)
+    t = np.exp(x - maxes)
     return t / np.sum(t)
 
 def cross_entropy(Y1, Y2):
@@ -49,7 +55,10 @@ def cross_entropy(Y1, Y2):
     """
     # batch size
     B = Y1.shape[0]
-    losses = np.sum(- Y1 * np.log(Y2), axis=0)
+    log = np.log(Y2)
+    # rewrite -inf
+    log = np.where(np.isneginf(log), -1.0e+300, log)
+    losses = np.sum(- Y1 * log, axis=0)
     return np.sum(losses) / B
 
 def sigmoid_differential(H):
@@ -65,6 +74,19 @@ def sigmoid_differential(H):
     """
     dH = ((np.ones_like(H) - H)*H).T
     return dH
+
+def relu_differential(H):
+    """
+    Parameters
+    ----------
+    A : B * M matrix
+        B sets of sigmoid outputs(each output is h1, ... , hM)
+
+    Return
+    ------
+    M * B matrix
+    """
+    return (H > 0).T
 
 def differential_by_output_unit_activation(Y1, Y2, batchsize):
     dEn_da2 = ((Y2 - Y1) / np.full_like(Y1, batchsize)).T
@@ -86,7 +108,7 @@ def differential_by_activation(previous_differential, W, activation_func_differe
     dEn_da = activation_func_differential * np.dot(W_delete_1column.T, previous_differential)
     return dEn_da
 
-def fit(X, Y, num_hidden_units, batch_size, epochs=1, learning_rate=0.01, filename=None):
+def fit(X, Y, num_hidden_units, batch_size, epochs=1, learning_rate=0.01, activation="sigmoid", filename=None):
     """
     Trains the neural network
 
@@ -98,8 +120,13 @@ def fit(X, Y, num_hidden_units, batch_size, epochs=1, learning_rate=0.01, filena
     batch_size : Integer
     epochs : Integer
     learning_rate : float
-    filename : String
+    activation : string
+    filename : string
         Default value is 'None'. When 'filename' is 'None', weight is not saved to file.
+
+    Return
+    ------
+    array of weight
     """
     # the number of data
     N = X.shape[0]
@@ -112,6 +139,15 @@ def fit(X, Y, num_hidden_units, batch_size, epochs=1, learning_rate=0.01, filena
     W1 = rng.normal(0, np.sqrt(1/D), (num_hidden_units, D+1))
     W2 = rng.normal(0, np.sqrt(1/num_hidden_units), (C, num_hidden_units+1))
 
+    if activation == "sigmoid":
+        activation_func = sigmoid
+        activation_differential = sigmoid_differential
+    elif activation == "relu":
+        activation_func = relu
+        activation_differential = relu_differential
+    else :
+        raise ValueError("This activation function is not implemented!")
+
     each_epoch  = N // batch_size
     sum_loss = 0
     for i in range(each_epoch * epochs):
@@ -119,7 +155,7 @@ def fit(X, Y, num_hidden_units, batch_size, epochs=1, learning_rate=0.01, filena
         XB, YB = utils.minibatch(X, Y, batch_size)
 
         # forward propagation
-        Z1 = np.array([sigmoid(lsum(x, W1)) for x in XB])
+        Z1 = np.array([activation_func(lsum(x, W1)) for x in XB])
         Y2 = np.array([softmax(lsum(x, W2)) for x in Z1])
 
         # cross entropy loss
@@ -129,7 +165,7 @@ def fit(X, Y, num_hidden_units, batch_size, epochs=1, learning_rate=0.01, filena
         dEn_da2 = differential_by_output_unit_activation(YB, Y2, batch_size)
         Z1_add_ones = np.insert(Z1, 0, 1, axis=1)
         dE_dW2 = np.dot(dEn_da2, Z1_add_ones)
-        dh_da1 = sigmoid_differential(Z1)
+        dh_da1 = activation_differential(Z1)
         dEn_da1 = differential_by_activation(dEn_da2, W2, dh_da1)
         XB_add_ones = np.insert(XB, 0, 1, axis=1)
         dE_dW1 = np.dot(dEn_da1, XB_add_ones)
@@ -147,7 +183,7 @@ def fit(X, Y, num_hidden_units, batch_size, epochs=1, learning_rate=0.01, filena
 
     return W1, W2
 
-def predict(X, W1, W2):
+def predict(X, W1, W2, activation="sigmoid"):
     """
     Generates output predictions for the input samples
 
@@ -156,18 +192,27 @@ def predict(X, W1, W2):
     X : Input data
     W1 : weight of first layer
     W2 : weight of second layer
+    activation : string. activation function
 
     Return
     ------
     Numpy array(s) of predictions
     """
+    if activation == "sigmoid": 
+        activation_func = sigmoid
+    elif activation == "relu":
+        activation_func = relu
+    else:
+        raise ValueError("This activation function is not implemented!")
+
     if X.ndim == 1 :
-        Y2 = softmax(lsum(sigmoid(lsum(X, W1)), W2))
+        Y2 = softmax(lsum(activation_func(lsum(X, W1)),W2))
     else :
-        Y2 = np.array([softmax(lsum(sigmoid(lsum(x, W1)), W2)) for x in X])
+        Y2 = np.array([softmax(lsum(activation_func(lsum(x, W1)), W2)) for x in X])
+        
     return Y2
 
-def fpredict(X, filename):
+def fpredict(X, filename, activation="sigmoid"):
     """
     predict using weight saved in file
 
@@ -175,6 +220,7 @@ def fpredict(X, filename):
     ----------
     X : Input data
     filename : String
+    activation : string. activation function
 
     Return
     ------
@@ -183,4 +229,4 @@ def fpredict(X, filename):
     weights = np.load(filename)
     W1 = weights[weights.files[0]]
     W2 = weights[weights.files[1]]
-    return predict(X, W1, W2)
+    return predict(X, W1, W2, activation=activation)
