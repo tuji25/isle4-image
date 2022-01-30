@@ -1,7 +1,7 @@
-from cmath import nan
 import numpy as np
 from numpy.random import default_rng
 from ireco import utils
+from ireco.optimizer import sgd, adagrad
 
 # linear sum
 def lsum(x, W):
@@ -23,6 +23,7 @@ def lsum(x, W):
  
 # sigmoid function
 def sigmoid(x):
+    x = np.where(x > 600, 600, x)
     size = x.shape[0]
     ones = np.ones(shape=size)
     return ones / (ones + np.exp(-x))
@@ -70,9 +71,9 @@ def sigmoid_differential(H):
 
     Return
     ------
-    dH : M * B matrix
+    dH : B * M matrix
     """
-    dH = ((np.ones_like(H) - H)*H).T
+    dH = (np.ones_like(H) - H)*H
     return dH
 
 def relu_differential(H):
@@ -84,31 +85,11 @@ def relu_differential(H):
 
     Return
     ------
-    M * B matrix
+    B * M matrix
     """
-    return (H > 0).T
+    return H > 0
 
-def differential_by_output_unit_activation(Y1, Y2, batchsize):
-    dEn_da2 = ((Y2 - Y1) / np.full_like(Y1, batchsize)).T
-    return dEn_da2
-
-def differential_by_activation(previous_differential, W, activation_func_differential):
-    """
-    parameters
-    ----------
-    previous_differential : C * B matrix
-    W : C * (M+1) matrix
-    activation_func_differential : M * B matrix
-
-    Return
-    ------
-    M * B matrix
-    """
-    W_delete_1column = np.delete(W, 0, axis=1)
-    dEn_da = activation_func_differential * np.dot(W_delete_1column.T, previous_differential)
-    return dEn_da
-
-def fit(X, Y, num_hidden_units, batch_size, epochs=1, learning_rate=0.01, activation="sigmoid", filename=None):
+def fit(X, Y, num_hidden_units, batch_size, epochs=1, optimizer="sgd", activation="sigmoid", filename=None):
     """
     Trains the neural network
 
@@ -119,7 +100,7 @@ def fit(X, Y, num_hidden_units, batch_size, epochs=1, learning_rate=0.01, activa
     num_hidden_units : Integer
     batch_size : Integer
     epochs : Integer
-    learning_rate : float
+    optimizer : string or instance of optimizer class
     activation : string
     filename : string
         Default value is 'None'. When 'filename' is 'None', weight is not saved to file.
@@ -139,6 +120,15 @@ def fit(X, Y, num_hidden_units, batch_size, epochs=1, learning_rate=0.01, activa
     W1 = rng.normal(0, np.sqrt(1/D), (num_hidden_units, D+1))
     W2 = rng.normal(0, np.sqrt(1/num_hidden_units), (C, num_hidden_units+1))
 
+    if optimizer == "sgd":
+        opt = sgd.SGD()
+    elif optimizer == "adagrad":
+        opt = adagrad.AdaGrad()
+    elif type(optimizer) == str:
+        raise ValueError("This optimizer is not implemented!")
+    else :
+        opt = optimizer
+
     if activation == "sigmoid":
         activation_func = sigmoid
         activation_differential = sigmoid_differential
@@ -155,24 +145,24 @@ def fit(X, Y, num_hidden_units, batch_size, epochs=1, learning_rate=0.01, activa
         XB, YB = utils.minibatch(X, Y, batch_size)
 
         # forward propagation
-        Z1 = np.array([activation_func(lsum(x, W1)) for x in XB])
-        Y2 = np.array([softmax(lsum(x, W2)) for x in Z1])
+        Y1 = np.array([activation_func(lsum(x, W1)) for x in XB])
+        Y2 = np.array([softmax(lsum(x, W2)) for x in Y1])
 
         # cross entropy loss
         sum_loss += cross_entropy(YB, Y2)
 
         # error backpropagation
-        dEn_da2 = differential_by_output_unit_activation(YB, Y2, batch_size)
-        Z1_add_ones = np.insert(Z1, 0, 1, axis=1)
-        dE_dW2 = np.dot(dEn_da2, Z1_add_ones)
-        dh_da1 = activation_differential(Z1)
-        dEn_da1 = differential_by_activation(dEn_da2, W2, dh_da1)
+        dEb_da2 = Y2 - YB
+        Y1_add_ones = np.insert(Y1, 0, 1, axis=1)
+        dE_dW2 = np.dot((dEb_da2).T, Y1_add_ones) / batch_size
+        dh_da1 = activation_differential(Y1)
+        W2_delete_1column = np.delete(W2, 0, axis=1)
+        dEb_da1 = dh_da1 * np.dot(dEb_da2,W2_delete_1column)
         XB_add_ones = np.insert(XB, 0, 1, axis=1)
-        dE_dW1 = np.dot(dEn_da1, XB_add_ones)
+        dE_dW1 = np.dot((dEb_da1).T, XB_add_ones) / batch_size
 
-        # renew weight
-        W1 = W1 - learning_rate * dE_dW1
-        W2 = W2 - learning_rate * dE_dW2
+        # update weight
+        W1, W2 = opt.update(W1, W2, dE_dW1, dE_dW2)
         
         if i != 0 and i % each_epoch == each_epoch - 1:
             print("epoch", i // each_epoch, "cross entropy:",sum_loss/each_epoch)
