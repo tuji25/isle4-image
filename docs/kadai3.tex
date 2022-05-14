@@ -1,0 +1,67 @@
+\documentclass[uplatex]{jsarticle}
+\usepackage{amsmath,amssymb,mathrsfs}
+\usepackage{listings}
+
+\begin{document}
+    \title{課題3}
+    \author{浦川樹}
+    \date{2022年1月13日}
+    \maketitle
+
+    \section{課題内容}
+    MNISTの学習データ60000枚の画像から3層ニューラルネットワークのパラメータの学習を行う．
+
+    \section{誤差逆伝播法による誤差関数の勾配計算}
+    バッチ中のあるデータbに対するクロスエントロピー誤差$E_{b}$は
+    $$E_{b} = \sum_{k=1}^C - y_{b,k} \log y_{b,k}^{(2)}$$
+    で与えられる．よってバッチ全体の誤差$E$は
+    $$E = \frac{1}{B} \sum_{b \in \mathscr{B}} E_b$$
+    である．ここで$\mathscr{B}$はバッチのデータ全体の集合を意味する．さてbをバッチ中のあるデータとし，次のような場合を考える．
+    $$ a_{b,j}^{(m)} = \sum_{i = 0}^{\mathscr{D}} w_{ji}^{(m)} z_{b,i} (j = 1, \cdots, \mathscr{M})$$
+    $$ y_{b,j}^{(m)} = h(a_{b,j}^{(m)}) $$
+    $$ a_{b,k}^{(m+1)} = \sum_{j = 0}^{\mathscr{M}} w_{kj}^{(m+1)} y_{b,j}^{(m)} (k = 1, \cdots, \mathscr{C})$$
+    このとき次の式が成り立つ．
+    $$\frac{\partial E}{\partial W^{(m)}} = \left( \frac{\partial E_b}{\partial a_{b,j}^{(m)}} \right) \cdot \left( z_{b,i} \right)$$
+    $$\left( \frac{\partial E_b}{\partial a_{b,j}^{(m)}} \right) = \left( h'(a_{b,j}^{(m)}) \right) \otimes \left( ^t\!{\tilde{W}^{(m+1)}} \cdot \left( \frac{\partial E_b}{\partial a_{b,k}^{(m+1)}} \right) \right)$$
+    ここで$\frac{\partial E}{\partial W^{(m)}}$は(j,i)成分が$\left( \frac{\partial E}{\partial w_{ji}^{(m)}}\right)$の$(\mathscr{M} + 1) \times \mathscr{D}$行列，$\left( \frac{\partial E_b}{\partial a_{b,j}^{(m)}} \right)$は(j,b)成分で表示された$(\mathscr{M} + 1) \times B$行列，$\left( z_{b,i} \right)$は(b,i)成分で表示された$B \times \mathscr{D}$行列である．
+    また$\left( h'(a_{b,j}^{(m)}) \right)$は(j,b)成分で表示された$\mathscr{M} \times B$行列，$\left( \frac{\partial E_b}{\partial a_{b,k}^{(m+1)}} \right)$は(k,b)成分で表示された$\mathscr{C} \times B$行列であり，
+    $$ \tilde{W}^{(m+1)} = 
+    \begin{pmatrix}
+        w_{11}^{(m+1)} & w_{12}^{(m+1)} & ただし$z_{b,0} = y_{b,0}^{(m)} = 0$とする．\cdots & w_{1\mathscr{M}}^{(m+1)} \\
+        w_{21}^{(m+1)} & w_{22}^{(m+1)} & \cdots & w_{2\mathscr{M}}^{(m+1)} \\
+        \vdots & \vdots & \ddots & \vdots \\
+        w_{\mathscr{C}1}^{(m+1)} & w_{\mathscr{C}2}^{(m+1)} & \cdots & w_{\mathscr{C}\mathscr{M}}^{(m+1)} 
+    \end{pmatrix}
+    $$
+    である．$\otimes$は行列のアダマール積を表す．この2式を用いると損失関数の勾配を計算することができる．
+
+    \section{プログラムの仕様}
+    誤差関数の勾配計算や重みの更新はneuralモジュールのfit()関数に実装した．それをkadai3.pyから呼び出している．
+
+    \section{実行結果}
+    次のような結果が得られた．
+    \begin{lstlisting}
+epoch 0 cross entropy: 0.6849489297103114
+epoch 1 cross entropy: 0.33892783681748456
+epoch 2 cross entropy: 0.2723342287194881
+epoch 3 cross entropy: 0.24425845073320412
+epoch 4 cross entropy: 0.21721248400020834
+epoch 5 cross entropy: 0.1975543220241951
+epoch 6 cross entropy: 0.18297456555145214
+epoch 7 cross entropy: 0.17012985644519665
+epoch 8 cross entropy: 0.158478132640478
+epoch 9 cross entropy: 0.1461636032973061
+epoch 10 cross entropy: 0.14117950727287137
+epoch 11 cross entropy: 0.13281330008682546
+epoch 12 cross entropy: 0.1251475363629807
+epoch 13 cross entropy: 0.11953131104941685
+epoch 14 cross entropy: 0.11382739492039515
+    \end{lstlisting}
+
+    \section{工夫点}
+    教科書に記載されている損失関数の勾配計算がよくわからなくなったので，できるだけ一般化した場合の逆伝播を自力で計算した．その結果ニューラルネットワークを多層に拡張した場合でも用いることのできる式を得た．
+
+    \section{問題点}
+    学習の速度が遅い．デモの際に皆さんの学習の様子を見たが，私のより学習が早い上に正解率も高い方がいた．
+
+\end{document}

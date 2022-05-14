@@ -1,0 +1,40 @@
+\documentclass[uplatex]{jsarticle}
+\usepackage{amsmath,amssymb}
+\usepackage{listings}
+
+\begin{document}
+    \title{課題2}
+    \author{浦川樹}
+    \date{2021年12月24日}
+    \maketitle
+
+    \section{課題内容}
+    MNISTの学習データ60000枚の画像からランダムにB枚をミニバッチとして取り出し，それらに対して順伝播を行う．その後クロスエントロピー誤差を計算する．
+
+    \section{プログラムの仕様}
+
+    \subsection{プログラムの構成}
+    one-hot vectorへの変換関数とミニバッチの実装はutilsモジュールに，クロスエントロピー誤差の実装はneuralモジュールに行った．それらを利用して課題2の実行の本体をkadai2.pyに実装している．
+
+    \subsection{one-hot vectorへの変換}
+    クラスラベルの配列から，各ラベルを変換したone-hot vectorの配列を返す関数to\_categorical()を実装した．各クラスラベルの値から対応するone-hot vectorを構成し，それらを配列にして返している．
+
+    \subsection{ミニバッチ}
+    全入力データとそのラベルとバッチサイズを受け取り，バッチサイズ個の入力データとラベルからなるタプルを返す関数minibatch()を実装した．numpy.random.Generator.choiceを用いて入力データの配列とラベルの配列からそれぞれバッチサイズ分取り出している．取り出される入力データとラベルが対応するように，入力データの選択の乱数生成器のシードとラベルの選択の乱数生成器のシードを揃えている．
+
+    \subsection{クロスエントロピー誤差}
+    正解のone-hot vectorの配列とニューラルネットワークの出力$\boldsymbol{y}^{(2)}$の配列を受け取って，バッチごとのクロスエントロピー誤差の平均を計算するcross\_entropy()を実装した．配列の各要素についてクロスエントロピー誤差を計算し，その平均をとっている．
+
+    \section{実行結果}
+    次のような結果が得られた．
+    \begin{lstlisting}
+    cross entropy loss : 2.3796278725782947
+    \end{lstlisting}
+
+    \section{工夫点}
+    ミニバッチ作成とone-hot vector生成はニューラルネットワーク以外で使用することもあるような処理なのでneuralモジュールではなくutilsモジュールとした．また課題1と同様にNumpyの提供するベクトル演算をもちいて実装した．
+
+    \section{問題点}
+    ミニバッチ作成の乱数生成器のシードにシステム時刻を用いているが，ミニバッチを何度も作成するような場合シードに連続する整数を用いることになる．これが問題ないのかがわからない．また，kadai2.pyがkadai1.pyに比べて体感できるレベルで遅くなっている．
+
+    \end{document}
