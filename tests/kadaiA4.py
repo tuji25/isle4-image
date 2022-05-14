@@ -1,6 +1,7 @@
 import numpy as np
 import mnist
 from ireco import neural, utils
+from ireco.optimizer import adagrad
 
 def main():
     raw_X = mnist.download_and_parse_mnist_file("train-images-idx3-ubyte.gz")
@@ -13,9 +14,11 @@ def main():
 
     M = 512
     batch_size = 100
-    epochs = 15
+    epochs = 25
 
-    neural.fit(X, Y, num_hidden_units=M, batch_size=batch_size, epochs=epochs, filename="weight_data/weight.npz")
+    opt = adagrad.AdaGrad()
+
+    neural.fit(X, Y, num_hidden_units=M, batch_size=batch_size, epochs=epochs, optimizer=opt, activation="relu", filename="weight_data/weight_relu_adagrad.npz")
 
 if __name__ == '__main__':
     main()
